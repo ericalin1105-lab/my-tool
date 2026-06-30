@@ -213,7 +213,7 @@
     <div class="row">
       <div class="field">
         <label for="year">出廠年分</label>
-        <input type="number" id="year" placeholder="例如 2022" oninput="calcAll()">
+        <input type="number" id="year" placeholder="例如 2022" oninput="onDepYearChange()">
       </div>
       <div class="field">
         <label for="mileage">里程(公里)</label>
@@ -283,15 +283,23 @@
     <h2><span class="num">4</span>車價貸款</h2>
     <div class="row">
       <div class="field">
+        <label>頭期款(自動計算)</label>
+        <input type="text" id="downPayment" readonly style="background:#f1f2f5;">
+      </div>
+      <div class="field">
         <label for="loanCarPrice">車價金額(元)</label>
         <input type="number" id="loanCarPrice" placeholder="實際成交車價" oninput="calcAll()">
       </div>
+    </div>
+    <div class="hint" style="margin-top:-6px;margin-bottom:12px;color:var(--sub);font-size:11px;">頭期款 = 購車預算 − 基本支出合計</div>
+    <div class="row">
       <div class="field">
         <label>實際貸款金額(自動計算)</label>
         <input type="text" id="loanAmount" readonly style="background:#f1f2f5;">
       </div>
     </div>
-    <div class="hint" style="margin-top:-6px;margin-bottom:12px;color:var(--sub);font-size:11px;">實際貸款金額 = 購車預算 − 基本支出合計</div>
+    <div class="hint" style="margin-top:-6px;margin-bottom:12px;color:var(--sub);font-size:11px;">實際貸款金額 = 車價金額 − 頭期款</div>
+    <div class="hint" style="margin-top:-6px;margin-bottom:12px;color:var(--sub);font-size:11px;">採等額本息攤還法:每月應付本息 ＝ [(1+月利率)^總月數 × 月利率] ÷ [(1+月利率)^總月數 − 1] × 貸款總額(月利率＝年利率÷12)</div>
     <div class="row">
       <div class="field">
         <label for="loanRate">年利率(%)</label>
@@ -340,15 +348,19 @@
       <div class="item-head"><span>① 折舊費用</span></div>
       <div class="row">
         <div class="field">
-          <label for="depYear">目前為購入後第幾年</label>
-          <input type="number" id="depYear" placeholder="例如 1" value="1" oninput="onDepYearChange()">
+          <label for="currentYear">目前年份</label>
+          <input type="number" id="currentYear" placeholder="例如 2026" oninput="onDepYearChange()">
         </div>
         <div class="field">
           <label for="depRate">本年度折舊率(%)</label>
           <input type="number" id="depRate" step="0.1" oninput="calcAll()">
         </div>
       </div>
-      <div style="font-size:11px;color:var(--sub);margin-top:4px;">預設值:第1年20%、第2~3年20%、第4年起12%(僅供參考估算,可手動修改)</div>
+      <div style="font-size:11px;color:var(--sub);margin-top:4px;">車齡 = 目前年份 − 出廠年分(上方「車輛資訊」欄位)。預設值:第1年20%、第2~3年20%、第4年起12%(僅供參考估算,可手動修改)</div>
+      <div class="result-box" style="margin-top:10px;margin-bottom:0;background:#fafbfc;">
+        <div class="label">車齡(自動計算)</div>
+        <div class="value" id="carAge" style="font-size:15px;">—</div>
+      </div>
       <div class="result-box" style="margin-top:10px;margin-bottom:0;">
         <div class="label">本年度折舊金額</div>
         <div class="value" id="depAmount">—</div>
@@ -607,10 +619,17 @@ function removeItem(id){
 
 /* ---------------- 折舊率自動帶入 ---------------- */
 function onDepYearChange(){
-  const y = parseInt(document.getElementById('depYear').value) || 1;
+  const manufactureYear = parseInt(document.getElementById('year').value) || null;
+  const currentYear = parseInt(document.getElementById('currentYear').value) || null;
+  let age = 1;
+  if(manufactureYear && currentYear){
+    age = currentYear - manufactureYear + 1; // 出廠當年算第1年
+    if(age < 1) age = 1;
+  }
+  document.getElementById('carAge').textContent = (manufactureYear && currentYear) ? ('第 ' + age + ' 年') : '請填寫出廠年分與目前年份';
   let rate;
-  if(y === 1) rate = 20;
-  else if(y === 2 || y === 3) rate = 20;
+  if(age === 1) rate = 20;
+  else if(age === 2 || age === 3) rate = 20;
   else rate = 12;
   document.getElementById('depRate').value = rate;
   calcAll();
@@ -649,7 +668,11 @@ function calcAll(){
 
   // 貸款計算
   const budget = parseFloat(document.getElementById('budget').value) || 0;
-  const loanAmount = budget - basicTotal;
+  const downPayment = budget - basicTotal;
+  document.getElementById('downPayment').value = fmt(downPayment) + ' 元';
+
+  const carPrice = parseFloat(document.getElementById('loanCarPrice').value) || 0;
+  const loanAmount = carPrice - downPayment;
   document.getElementById('loanAmount').value = fmt(loanAmount) + ' 元';
 
   const annualRate = parseFloat(document.getElementById('loanRate').value) || 0;
