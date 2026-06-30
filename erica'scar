@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>購車預算計算工具</title>
+<style>
+  :root{
+    --bg:#f4f5f7;
+    --card:#ffffff;
+    --border:#e2e4ea;
+    --text:#1f2330;
+    --sub:#6b7080;
+    --accent:#3457d5;
+    --accent-light:#eaefff;
+    --green:#1e8e5a;
+    --red:#d6463c;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:"Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    padding:32px 16px 80px;
+  }
+  .wrap{
+    max-width:640px;
+    margin:0 auto;
+  }
+  h1{
+    font-size:22px;
+    margin-bottom:4px;
+  }
+  .lead{
+    color:var(--sub);
+    font-size:13px;
+    margin-bottom:24px;
+  }
+  .section{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:20px;
+    margin-bottom:16px;
+  }
+  .section h2{
+    font-size:15px;
+    margin:0 0 16px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .section h2 .num{
+    background:var(--accent-light);
+    color:var(--accent);
+    font-size:12px;
+    width:20px;height:20px;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    margin-bottom:12px;
+  }
+  .row.single{grid-template-columns:1fr;}
+  .field label{
+    display:block;
+    font-size:12px;
+    color:var(--sub);
+    margin-bottom:6px;
+  }
+  input[type="number"],input[type="text"],select{
+    width:100%;
+    padding:9px 10px;
+    font-size:14px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:#fff;
+    color:var(--text);
+    font-family:inherit;
+  }
+  input:focus,select:focus{
+    outline:none;
+    border-color:var(--accent);
+  }
+  .sub-card{
+    background:#fafbfc;
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px;
+    margin-bottom:10px;
+  }
+  .sub-card .row{margin-bottom:0;}
+  .add-btn{
+    width:100%;
+    padding:9px;
+    background:var(--accent-light);
+    color:var(--accent);
+    border:1px dashed var(--accent);
+    border-radius:8px;
+    font-size:13px;
+    cursor:pointer;
+    margin-top:4px;
+  }
+  .add-btn:hover{background:#dde6ff;}
+  .remove-btn{
+    background:none;
+    border:none;
+    color:var(--red);
+    font-size:12px;
+    cursor:pointer;
+    padding:4px 6px;
+    margin-left:auto;
+  }
+  .item-head{
+    display:flex;
+    align-items:center;
+    margin-bottom:8px;
+  }
+  .item-head span{
+    font-size:12px;
+    color:var(--sub);
+    font-weight:bold;
+  }
+  .summary{
+    background:var(--accent-light);
+    border-radius:8px;
+    padding:14px 16px;
+    margin-top:8px;
+  }
+  .summary-row{
+    display:flex;
+    justify-content:space-between;
+    font-size:13px;
+    padding:4px 0;
+  }
+  .summary-row.total{
+    font-weight:bold;
+    font-size:15px;
+    border-top:1px solid #c9d6ff;
+    margin-top:6px;
+    padding-top:10px;
+  }
+  .summary-row .val{
+    font-weight:bold;
+  }
+  .result-box{
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px 14px;
+    margin-bottom:10px;
+  }
+  .result-box .label{
+    font-size:12px;
+    color:var(--sub);
+  }
+  .result-box .value{
+    font-size:18px;
+    font-weight:bold;
+    margin-top:2px;
+  }
+  .grid3{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:10px;
+  }
+  @media (max-width:480px){
+    .row{grid-template-columns:1fr;}
+    .grid3{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>購車預算計算工具</h1>
+  <div class="lead">輸入車輛資訊與預算,自動計算貸款試算與年度持有成本</div>
+
+  <!-- 0. 購車預算 -->
+  <div class="section">
+    <h2><span class="num">0</span>購車預算</h2>
+    <div class="row single">
+      <div class="field">
+        <label for="budget">總預算金額(元)</label>
+        <input type="number" id="budget" placeholder="例如 170000" oninput="calcAll()">
+      </div>
+    </div>
+  </div>
+
+  <!-- 車輛資訊 -->
+  <div class="section">
+    <h2><span class="num">1</span>車輛資訊</h2>
+    <div class="row">
+      <div class="field">
+        <label for="brand">品牌</label>
+        <select id="brand" onchange="onBrandChange()">
+          <option value="">請選擇品牌</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="model">車款</label>
+        <select id="model" onchange="onModelChange()">
+          <option value="">請先選擇品牌</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="year">出廠年分</label>
+        <input type="number" id="year" placeholder="例如 2022" oninput="calcAll()">
+      </div>
+      <div class="field">
+        <label for="mileage">里程(公里)</label>
+        <input type="number" id="mileage" placeholder="例如 30000" oninput="calcAll()">
+      </div>
+    </div>
+    <div class="row single">
+      <div class="field">
+        <label for="carPrice">空車價(元)</label>
+        <input type="number" id="carPrice" placeholder="例如 600000" oninput="calcAll()">
+      </div>
+    </div>
+  </div>
+
+  <!-- 購車基本支出 -->
+  <div class="section">
+    <h2><span class="num">2</span>購車基本支出</h2>
+
+    <!-- 配件 -->
+    <div style="margin-bottom:16px;">
+      <label style="font-size:13px;font-weight:bold;display:block;margin-bottom:8px;">配件</label>
+      <div id="accessoryList"></div>
+      <button class="add-btn" onclick="addAccessory()">+ 新增配件</button>
+    </div>
+
+    <!-- 保險 -->
+    <div style="margin-bottom:16px;">
+      <label style="font-size:13px;font-weight:bold;display:block;margin-bottom:8px;">保險</label>
+      <div class="sub-card">
+        <div class="row">
+          <div class="field">
+            <label for="insuranceType">保險類型</label>
+            <select id="insuranceType" onchange="calcAll()">
+              <option value="乙式">乙式保險</option>
+              <option value="丙式">丙式保險</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="insuranceFee">保險費用(元)</label>
+            <input type="number" id="insuranceFee" placeholder="例如 25000" oninput="calcAll()">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 規費 -->
+    <div>
+      <label style="font-size:13px;font-weight:bold;display:block;margin-bottom:8px;">規費</label>
+      <div id="feeList"></div>
+      <button class="add-btn" onclick="addFee('','')">+ 新增規費</button>
+    </div>
+  </div>
+
+  <!-- 基本支出小計 -->
+  <div class="section">
+    <h2><span class="num">3</span>基本支出小計</h2>
+    <div class="summary">
+      <div class="summary-row"><span>配件總額</span><span class="val" id="sumAccessory">0</span></div>
+      <div class="summary-row"><span>保險費用</span><span class="val" id="sumInsurance">0</span></div>
+      <div class="summary-row"><span>規費總額</span><span class="val" id="sumFee">0</span></div>
+      <div class="summary-row total"><span>基本支出合計</span><span class="val" id="sumBasic">0</span></div>
+    </div>
+  </div>
+
+  <!-- 車價貸款 -->
+  <div class="section">
+    <h2><span class="num">4</span>車價貸款</h2>
+    <div class="row">
+      <div class="field">
+        <label for="loanCarPrice">車價金額(元)</label>
+        <input type="number" id="loanCarPrice" placeholder="實際成交車價" oninput="calcAll()">
+      </div>
+      <div class="field">
+        <label>實際貸款金額(自動計算)</label>
+        <input type="text" id="loanAmount" readonly style="background:#f1f2f5;">
+      </div>
+    </div>
+    <div class="hint" style="margin-top:-6px;margin-bottom:12px;color:var(--sub);font-size:11px;">實際貸款金額 = 購車預算 − 基本支出合計</div>
+    <div class="row">
+      <div class="field">
+        <label for="loanRate">年利率(%)</label>
+        <input type="number" id="loanRate" step="0.01" placeholder="例如 3.5" oninput="calcAll()">
+      </div>
+      <div class="field">
+        <label for="loanTerm">分期期數(月)</label>
+        <input type="number" id="loanTerm" placeholder="例如 48" oninput="calcAll()">
+      </div>
+    </div>
+
+    <div class="result-box">
+      <div class="label">每期應繳金額(等額本息)</div>
+      <div class="value" id="monthlyPayment">—</div>
+    </div>
+    <div class="result-box">
+      <div class="label">全部繳完總共支付利息</div>
+      <div class="value" id="totalInterest">—</div>
+    </div>
+
+    <div style="margin-top:16px;">
+      <label style="font-size:13px;font-weight:bold;display:block;margin-bottom:8px;">提前清償試算</label>
+      <div class="grid3">
+        <div class="result-box" style="margin-bottom:0;">
+          <div class="label">第24期清償<br>已繳利息</div>
+          <div class="value" id="interestAt24" style="font-size:15px;">—</div>
+        </div>
+        <div class="result-box" style="margin-bottom:0;">
+          <div class="label">第36期清償<br>已繳利息</div>
+          <div class="value" id="interestAt36" style="font-size:15px;">—</div>
+        </div>
+        <div class="result-box" style="margin-bottom:0;">
+          <div class="label">繳滿全期<br>已繳利息</div>
+          <div class="value" id="interestFull" style="font-size:15px;">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 一年的支出 -->
+  <div class="section">
+    <h2><span class="num">5</span>一年的支出</h2>
+
+    <!-- 折舊 -->
+    <div class="sub-card">
+      <div class="item-head"><span>① 折舊費用</span></div>
+      <div class="row">
+        <div class="field">
+          <label for="depYear">目前為購入後第幾年</label>
+          <input type="number" id="depYear" placeholder="例如 1" value="1" oninput="onDepYearChange()">
+        </div>
+        <div class="field">
+          <label for="depRate">本年度折舊率(%)</label>
+          <input type="number" id="depRate" step="0.1" oninput="calcAll()">
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--sub);margin-top:4px;">預設值:第1年20%、第2~3年20%、第4年起12%(僅供參考估算,可手動修改)</div>
+      <div class="result-box" style="margin-top:10px;margin-bottom:0;">
+        <div class="label">本年度折舊金額</div>
+        <div class="value" id="depAmount">—</div>
+      </div>
+    </div>
+
+    <!-- 油耗 -->
+    <div class="sub-card">
+      <div class="item-head"><span>② 油耗費用</span></div>
+      <div class="row">
+        <div class="field">
+          <label for="fuelEfficiency">油耗(km/L)</label>
+          <input type="number" id="fuelEfficiency" step="0.1" oninput="calcAll()">
+        </div>
+        <div class="field">
+          <label for="fuelPrice">95無鉛油價(元/公升)</label>
+          <input type="number" id="fuelPrice" step="0.1" value="30" oninput="calcAll()">
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--sub);margin-top:4px;">假設一天行駛52公里、一週開4天 → 年行駛公里數 = 52×4×52週 = 10,816 km。油耗依車款自動帶入,可手動調整</div>
+      <div class="result-box" style="margin-top:10px;margin-bottom:0;">
+        <div class="label">一年油資</div>
+        <div class="value" id="fuelCost">—</div>
+      </div>
+    </div>
+
+    <!-- 保養 -->
+    <div class="sub-card">
+      <div class="item-head"><span>③ 保養費用</span></div>
+      <div class="row">
+        <div class="field">
+          <label for="maintType">保養模式</label>
+          <select id="maintType" onchange="calcAll()">
+            <option value="km">日系車:每5,000公里保養一次</option>
+            <option value="twice">歐美系車:一年保養兩次</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="maintCost">單次保養費用(元)</label>
+          <input type="number" id="maintCost" placeholder="例如 3000" oninput="calcAll()">
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--sub);margin-top:4px;">保養模式依品牌自動判斷,可手動切換</div>
+      <div class="result-box" style="margin-top:10px;margin-bottom:0;">
+        <div class="label">一年保養次數 / 總費用</div>
+        <div class="value" id="maintCostTotal">—</div>
+      </div>
+    </div>
+
+    <div class="summary">
+      <div class="summary-row"><span>年折舊</span><span class="val" id="sumDep">0</span></div>
+      <div class="summary-row"><span>年油資</span><span class="val" id="sumFuel">0</span></div>
+      <div class="summary-row"><span>年保養費</span><span class="val" id="sumMaint">0</span></div>
+      <div class="summary-row total"><span>一年總支出</span><span class="val" id="sumYearly">0</span></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ---------------- 車款資料庫 ---------------- */
+// fuel: km/L, type: 'jp' 日系(里程保養) 或 'eu' 歐美系(次數保養)
+const CAR_DB = {
+  "Toyota": {
+    type:"jp",
+    models:{
+      "Corolla Altis":{fuel:18.5},
+      "Corolla Cross":{fuel:19.0},
+      "Yaris Cross":{fuel:19.5},
+      "Camry":{fuel:16.5},
+      "RAV4":{fuel:15.5}
+    }
+  },
+  "Honda": {
+    type:"jp",
+    models:{
+      "Fit":{fuel:20.0},
+      "City":{fuel:19.0},
+      "CR-V":{fuel:15.0},
+      "HR-V":{fuel:17.5}
+    }
+  },
+  "Nissan": {
+    type:"jp",
+    models:{
+      "Kicks":{fuel:19.5},
+      "Sentra":{fuel:17.0},
+      "X-Trail":{fuel:14.5}
+    }
+  },
+  "Mazda": {
+    type:"jp",
+    models:{
+      "Mazda2":{fuel:18.5},
+      "Mazda3":{fuel:16.5},
+      "CX-30":{fuel:16.0},
+      "CX-5":{fuel:14.5}
+    }
+  },
+  "Suzuki": {
+    type:"jp",
+    models:{
+      "Swift":{fuel:19.0},
+      "Vitara":{fuel:17.5}
+    }
+  },
+  "Ford": {
+    type:"eu",
+    models:{
+      "Focus":{fuel:16.0},
+      "Focus Active":{fuel:15.5},
+      "Kuga":{fuel:14.5}
+    }
+  },
+  "Volkswagen": {
+    type:"eu",
+    models:{
+      "Polo":{fuel:17.0},
+      "Golf":{fuel:16.0},
+      "T-Cross":{fuel:16.5}
+    }
+  },
+  "Skoda": {
+    type:"eu",
+    models:{
+      "Fabia":{fuel:17.5},
+      "Scala":{fuel:17.0},
+      "Kamiq":{fuel:16.5}
+    }
+  },
+  "Kia": {
+    type:"eu",
+    models:{
+      "Stonic":{fuel:17.5},
+      "Sportage":{fuel:14.0}
+    }
+  },
+  "BMW": {
+    type:"eu",
+    models:{
+      "1 Series":{fuel:14.5},
+      "3 Series":{fuel:13.5}
+    }
+  },
+  "Mercedes-Benz": {
+    type:"eu",
+    models:{
+      "A-Class":{fuel:14.0},
+      "C-Class":{fuel:13.0}
+    }
+  }
+};
+
+/* ---------------- 初始化下拉選單 ---------------- */
+function initBrandSelect(){
+  const sel = document.getElementById('brand');
+  Object.keys(CAR_DB).forEach(brand=>{
+    const opt = document.createElement('option');
+    opt.value = brand;
+    opt.textContent = brand;
+    sel.appendChild(opt);
+  });
+}
+
+function onBrandChange(){
+  const brand = document.getElementById('brand').value;
+  const modelSel = document.getElementById('model');
+  modelSel.innerHTML = '';
+  if(!brand){
+    modelSel.innerHTML = '<option value="">請先選擇品牌</option>';
+    return;
+  }
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = '請選擇車款';
+  modelSel.appendChild(placeholder);
+  Object.keys(CAR_DB[brand].models).forEach(model=>{
+    const opt = document.createElement('option');
+    opt.value = model;
+    opt.textContent = model;
+    modelSel.appendChild(opt);
+  });
+  onModelChange();
+}
+
+function onModelChange(){
+  const brand = document.getElementById('brand').value;
+  const model = document.getElementById('model').value;
+  if(brand && model){
+    const info = CAR_DB[brand].models[model];
+    document.getElementById('fuelEfficiency').value = info.fuel;
+    document.getElementById('maintType').value = CAR_DB[brand].type === 'jp' ? 'km' : 'twice';
+  }
+  calcAll();
+}
+
+/* ---------------- 配件 ---------------- */
+let accessoryId = 0;
+function addAccessory(name, amount){
+  name = name || '';
+  amount = amount || '';
+  accessoryId++;
+  const id = accessoryId;
+  const div = document.createElement('div');
+  div.className = 'sub-card';
+  div.id = 'accessory-' + id;
+  div.innerHTML =
+    '<div class="item-head"><span>配件 #' + id + '</span>' +
+    '<button class="remove-btn" onclick="removeItem(\'accessory-' + id + '\')">移除</button></div>' +
+    '<div class="row">' +
+    '<div class="field"><label>配件名稱</label>' +
+    '<input type="text" placeholder="例如 行車記錄器" value="' + name + '" oninput="calcAll()" class="acc-name"></div>' +
+    '<div class="field"><label>配件金額(元)</label>' +
+    '<input type="number" placeholder="例如 5000" value="' + amount + '" oninput="calcAll()" class="acc-amount"></div>' +
+    '</div>';
+  document.getElementById('accessoryList').appendChild(div);
+  calcAll();
+}
+
+/* ---------------- 規費 ---------------- */
+let feeId = 0;
+const DEFAULT_FEES = [
+  ["燃料稅",4320],
+  ["牌照稅",4320],
+  ["貸款設定",3500],
+  ["選車牌",2000],
+  ["監理站代辦",600],
+  ["領牌規費",1250]
+];
+
+function addFee(name, amount){
+  name = name || '';
+  amount = (amount === undefined || amount === null) ? '' : amount;
+  feeId++;
+  const id = feeId;
+  const div = document.createElement('div');
+  div.className = 'sub-card';
+  div.id = 'fee-' + id;
+  div.innerHTML =
+    '<div class="item-head"><span>規費項目</span>' +
+    '<button class="remove-btn" onclick="removeItem(\'fee-' + id + '\')">移除</button></div>' +
+    '<div class="row">' +
+    '<div class="field"><label>項目名稱</label>' +
+    '<input type="text" placeholder="項目名稱" value="' + name + '" oninput="calcAll()" class="fee-name"></div>' +
+    '<div class="field"><label>金額(元)</label>' +
+    '<input type="number" placeholder="金額" value="' + amount + '" oninput="calcAll()" class="fee-amount"></div>' +
+    '</div>';
+  document.getElementById('feeList').appendChild(div);
+  calcAll();
+}
+
+function removeItem(id){
+  document.getElementById(id).remove();
+  calcAll();
+}
+
+/* ---------------- 折舊率自動帶入 ---------------- */
+function onDepYearChange(){
+  const y = parseInt(document.getElementById('depYear').value) || 1;
+  let rate;
+  if(y === 1) rate = 20;
+  else if(y === 2 || y === 3) rate = 20;
+  else rate = 12;
+  document.getElementById('depRate').value = rate;
+  calcAll();
+}
+
+/* ---------------- 主計算 ---------------- */
+function fmt(n){
+  if(isNaN(n) || n===null) return '0';
+  return Math.round(n).toLocaleString('zh-TW');
+}
+
+function calcAll(){
+  // 配件加總
+  let accessoryTotal = 0;
+  document.querySelectorAll('#accessoryList .sub-card').forEach(function(card){
+    const amt = parseFloat(card.querySelector('.acc-amount').value) || 0;
+    accessoryTotal += amt;
+  });
+
+  // 保險
+  const insuranceFee = parseFloat(document.getElementById('insuranceFee').value) || 0;
+
+  // 規費加總
+  let feeTotal = 0;
+  document.querySelectorAll('#feeList .sub-card').forEach(function(card){
+    const amt = parseFloat(card.querySelector('.fee-amount').value) || 0;
+    feeTotal += amt;
+  });
+
+  const basicTotal = accessoryTotal + insuranceFee + feeTotal;
+
+  document.getElementById('sumAccessory').textContent = fmt(accessoryTotal);
+  document.getElementById('sumInsurance').textContent = fmt(insuranceFee);
+  document.getElementById('sumFee').textContent = fmt(feeTotal);
+  document.getElementById('sumBasic').textContent = fmt(basicTotal);
+
+  // 貸款計算
+  const budget = parseFloat(document.getElementById('budget').value) || 0;
+  const loanAmount = budget - basicTotal;
+  document.getElementById('loanAmount').value = fmt(loanAmount) + ' 元';
+
+  const annualRate = parseFloat(document.getElementById('loanRate').value) || 0;
+  const term = parseInt(document.getElementById('loanTerm').value) || 0;
+  const monthlyRate = annualRate / 100 / 12;
+
+  let monthlyPayment = 0;
+  let totalInterest = 0;
+
+  if(loanAmount > 0 && term > 0){
+    if(monthlyRate === 0){
+      monthlyPayment = loanAmount / term;
+    } else {
+      monthlyPayment = loanAmount * monthlyRate * Math.pow(1+monthlyRate, term) / (Math.pow(1+monthlyRate, term) - 1);
+    }
+    totalInterest = monthlyPayment * term - loanAmount;
+
+    function interestUpTo(n){
+      if(n >= term) return totalInterest;
+      let balance = loanAmount;
+      let interestPaid = 0;
+      for(let i=0;i<n;i++){
+        const interestPortion = monthlyRate === 0 ? 0 : balance * monthlyRate;
+        const principalPortion = monthlyPayment - interestPortion;
+        interestPaid += interestPortion;
+        balance -= principalPortion;
+      }
+      return interestPaid;
+    }
+    const interestAt24 = interestUpTo(24);
+    const interestAt36 = interestUpTo(36);
+
+    document.getElementById('monthlyPayment').textContent = fmt(monthlyPayment) + ' 元/月';
+    document.getElementById('totalInterest').textContent = fmt(totalInterest) + ' 元';
+    document.getElementById('interestAt24').textContent = term > 24 ? (fmt(interestAt24)+' 元') : '已繳清';
+    document.getElementById('interestAt36').textContent = term > 36 ? (fmt(interestAt36)+' 元') : '已繳清';
+    document.getElementById('interestFull').textContent = fmt(totalInterest) + ' 元';
+  } else {
+    document.getElementById('monthlyPayment').textContent = '—';
+    document.getElementById('totalInterest').textContent = '—';
+    document.getElementById('interestAt24').textContent = '—';
+    document.getElementById('interestAt36').textContent = '—';
+    document.getElementById('interestFull').textContent = '—';
+  }
+
+  // 折舊
+  const carPriceForDep = parseFloat(document.getElementById('carPrice').value) || parseFloat(document.getElementById('loanCarPrice').value) || 0;
+  const depRate = parseFloat(document.getElementById('depRate').value) || 0;
+  const depAmount = carPriceForDep * (depRate/100);
+  document.getElementById('depAmount').textContent = fmt(depAmount) + ' 元';
+
+  // 油耗
+  const fuelEff = parseFloat(document.getElementById('fuelEfficiency').value) || 0;
+  const fuelPrice = parseFloat(document.getElementById('fuelPrice').value) || 0;
+  const annualKm = 52 * 4 * 52;
+  let fuelCost = 0;
+  if(fuelEff > 0){
+    fuelCost = (annualKm / fuelEff) * fuelPrice;
+  }
+  document.getElementById('fuelCost').textContent = fuelEff>0 ? (fmt(fuelCost) + ' 元 (年行駛 ' + fmt(annualKm) + ' km)') : '請輸入油耗';
+
+  // 保養
+  const maintType = document.getElementById('maintType').value;
+  const maintCost = parseFloat(document.getElementById('maintCost').value) || 0;
+  let maintTimes, maintTotal;
+  if(maintType === 'km'){
+    maintTimes = annualKm / 5000;
+    maintTotal = maintTimes * maintCost;
+    document.getElementById('maintCostTotal').textContent = maintTimes.toFixed(1) + ' 次 / ' + fmt(maintTotal) + ' 元';
+  } else {
+    maintTimes = 2;
+    maintTotal = maintTimes * maintCost;
+    document.getElementById('maintCostTotal').textContent = maintTimes + ' 次 / ' + fmt(maintTotal) + ' 元';
+  }
+
+  const yearlyTotal = depAmount + fuelCost + maintTotal;
+  document.getElementById('sumDep').textContent = fmt(depAmount);
+  document.getElementById('sumFuel').textContent = fmt(fuelCost);
+  document.getElementById('sumMaint').textContent = fmt(maintTotal);
+  document.getElementById('sumYearly').textContent = fmt(yearlyTotal);
+}
+
+/* ---------------- 啟動 ---------------- */
+initBrandSelect();
+DEFAULT_FEES.forEach(function(f){ addFee(f[0], f[1]); });
+addAccessory();
+onDepYearChange();
+calcAll();
+</script>
+
+</body>
+</html>
